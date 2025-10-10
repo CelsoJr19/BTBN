@@ -150,15 +150,19 @@ print_balances_and_account_id(const char *json_str)
 void 
 place_limit_buy_order(const char *symbol, double price, double quantity) 
   {
-  printf("Enviando ordem de compra para %f %s ao preço de %.8f USDT...\n", quantity, symbol, price);
+   printf("Enviando ordem de compra para %f %s ao preço de %.8f USDT...\n", quantity, symbol, price);
+    fflush(stdout); // Garante que a mensagem acima apareça imediatamente
 
-    // Carregar variáveis de ambiente
+    // --- DEBUG: Início ---
+    printf("--- DEBUG: Carregando chaves de API...\n");
+    fflush(stdout);
+    
     char *api_key = getenv("BINANCE_API_KEY");
     char *secret_key = getenv("BINANCE_SECRET_KEY");
 
     if (api_key == NULL || secret_key == NULL) {
         printf("Erro Crítico: Não foi possível encontrar as chaves de API para enviar a ordem.\n");
-        return; // Sai da função
+        return;
     }
 
     CURL *curl;
@@ -170,22 +174,29 @@ place_limit_buy_order(const char *symbol, double price, double quantity)
     curl = curl_easy_init();
     if (curl) {
         char endpoint[] = "https://api.binance.com/api/v3/order";
+        
+        // --- DEBUG: Buscando timestamp ---
+        printf("--- DEBUG: Chamando get_server_time...\n");
+        fflush(stdout);
         long long timestamp = get_server_time();
+        printf("--- DEBUG: get_server_time retornou. Timestamp: %lld\n", timestamp);
+        fflush(stdout);
 
-        // Criar a string de consulta com os dados da ordem
         char query[512];
         snprintf(query, sizeof(query), "symbol=%s&side=BUY&type=LIMIT&timeInForce=GTC&quantity=%.8f&price=%.8f&timestamp=%lld",
                  symbol, quantity, price, timestamp);
 
-        // Gerar a assinatura
+        // --- DEBUG: Gerando assinatura ---
+        printf("--- DEBUG: Gerando assinatura HMAC...\n");
+        fflush(stdout);
         char signature[65];
         hmac_sha256(secret_key, query, signature);
+        printf("--- DEBUG: Assinatura gerada.\n");
+        fflush(stdout);
 
-        // Construir a URL final com assinatura
         char url[1024];
         snprintf(url, sizeof(url), "%s?%s&signature=%s", endpoint, query, signature);
 
-        // Configurar os cabeçalhos
         struct curl_slist *headers = NULL;
         char api_key_header[256];
         snprintf(api_key_header, sizeof(api_key_header), "X-MBX-APIKEY: %s", api_key);
@@ -193,12 +204,17 @@ place_limit_buy_order(const char *symbol, double price, double quantity)
 
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(curl, CURLOPT_POST, 1L); // É uma requisição POST
+        curl_easy_setopt(curl, CURLOPT_POST, 1L);
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&response);
 
-        // Fazer a requisição
+        // --- DEBUG: Ponto crítico ---
+        printf("--- DEBUG: EXECUTANDO a requisição de rede (curl_easy_perform)...\n");
+        fflush(stdout);
         res = curl_easy_perform(curl);
+        // Se o programa travar, ele não imprimirá a próxima linha
+        printf("--- DEBUG: Requisição de rede FINALIZADA.\n");
+        fflush(stdout);
 
         if (res != CURLE_OK) {
             fprintf(stderr, "Erro ao enviar ordem de compra: %s\n", curl_easy_strerror(res));
@@ -206,12 +222,11 @@ place_limit_buy_order(const char *symbol, double price, double quantity)
             printf("Resposta da ordem de compra: %s\n", response.buffer);
         }
 
-        // Liberar recursos
         free(response.buffer);
         curl_slist_free_all(headers);
         curl_easy_cleanup(curl);
     }
-}
+  }
 
 int
 main() 

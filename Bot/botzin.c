@@ -72,7 +72,6 @@ long long get_server_time()
   CURLcode res;
   long long server_time = 0;
 
-  curl_global_init(CURL_GLOBAL_DEFAULT);
   curl = curl_easy_init();
 
   if (curl) 
@@ -92,8 +91,6 @@ long long get_server_time()
 
     curl_easy_cleanup(curl);
     }
-
-  curl_global_cleanup();
   return server_time;
   }
 

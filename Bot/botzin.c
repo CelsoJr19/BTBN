@@ -154,7 +154,7 @@ place_limit_buy_order(const char *symbol, double price, double quantity)
     fflush(stdout); // Garante que a mensagem acima apareça imediatamente
 
     // --- DEBUG: Início ---
-    printf("--- DEBUG: Carregando chaves de API...\n");
+    //printf("--- DEBUG: Carregando chaves de API...\n");
     fflush(stdout);
     
     char *api_key = getenv("BINANCE_API_KEY");
@@ -176,10 +176,10 @@ place_limit_buy_order(const char *symbol, double price, double quantity)
         char endpoint[] = "https://api.binance.com/api/v3/order";
         
         // --- DEBUG: Buscando timestamp ---
-        printf("--- DEBUG: Chamando get_server_time...\n");
+        //printf("--- DEBUG: Chamando get_server_time...\n");
         fflush(stdout);
         long long timestamp = get_server_time();
-        printf("--- DEBUG: get_server_time retornou. Timestamp: %lld\n", timestamp);
+        //printf("--- DEBUG: get_server_time retornou. Timestamp: %lld\n", timestamp);
         fflush(stdout);
 
         char query[512];
@@ -187,11 +187,11 @@ place_limit_buy_order(const char *symbol, double price, double quantity)
                  symbol, quantity, price, timestamp);
 
         // --- DEBUG: Gerando assinatura ---
-        printf("--- DEBUG: Gerando assinatura HMAC...\n");
+        //printf("--- DEBUG: Gerando assinatura HMAC...\n");
         fflush(stdout);
         char signature[65];
         hmac_sha256(secret_key, query, signature);
-        printf("--- DEBUG: Assinatura gerada.\n");
+        //printf("--- DEBUG: Assinatura gerada.\n");
         fflush(stdout);
 
         char url[1024];
@@ -205,15 +205,18 @@ place_limit_buy_order(const char *symbol, double price, double quantity)
         curl_easy_setopt(curl, CURLOPT_URL, url);
         curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
         curl_easy_setopt(curl, CURLOPT_POST, 1L);
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, 0L); //Tamanho do corpo do POST = zero
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&response);
+	
+	//curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
 
         // --- DEBUG: Ponto crítico ---
-        printf("--- DEBUG: EXECUTANDO a requisição de rede (curl_easy_perform)...\n");
+        //printf("--- DEBUG: EXECUTANDO a requisição de rede (curl_easy_perform)...\n");
         fflush(stdout);
         res = curl_easy_perform(curl);
         // Se o programa travar, ele não imprimirá a próxima linha
-        printf("--- DEBUG: Requisição de rede FINALIZADA.\n");
+        // printf("--- DEBUG: Requisição de rede FINALIZADA.\n");
         fflush(stdout);
 
         if (res != CURLE_OK) {
@@ -264,7 +267,7 @@ main()
      
       if (api_key == NULL || secret_key == NULL) 
 	    {
-        printf("Erro: API Key ou Secret Key nÃƒÆ’Ã‚Â£o encontradas. Verifique o arquivo config.env.\n");
+        printf("Erro: API Key ou Secret Key não encontradas. Verifique o arquivo config.env.\n");
         return 1;
         }
      
@@ -297,7 +300,7 @@ main()
       char url[512];
       snprintf(url, sizeof(url), "%s?%s&signature=%s", endpoint, query, signature);
 
-      // Configurar os cabeÃƒÆ’Ã‚Â§alhos
+      // Configurar os cabeçalhos
       struct curl_slist *headers = NULL;
       char api_key_header[128];
       snprintf(api_key_header, sizeof(api_key_header), "X-MBX-APIKEY: %s", api_key);
@@ -316,7 +319,7 @@ main()
         fprintf(stderr, "Erro ao acessar a API Binance: %s\n", curl_easy_strerror(res));
         } else 
 	        {
-            // Chamar a funÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o para imprimir o saldo de BTC e o ID da conta
+            // Chamar a função para imprimir o saldo de BTC e o ID da conta
             print_balances_and_account_id(response.buffer);
             }
 

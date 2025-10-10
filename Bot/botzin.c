@@ -231,77 +231,9 @@ main()
   printf("  | |   | |_) |   / _ \\   | | | | |  _|     |  _ \\  | | | |   | |     |  _ \\   | |  |  \\| |   / _ \\   |  \\| | | |     |  _|  \n");
   printf("  | |   |  _ <   / ___ \\  | |_| | | |___    | |_) | | |_| |   | |     | |_) |  | |  | |\\  |  / ___ \\  | |\\  | | |___  | |___ \n");
   printf("  |_|   |_|  _\\ /_/    _\\ |____/  |_____|   |____/   \\___/    |_|     |____/  |___| |_| \\_| /_/   \\_\\ |_| \\_|  \\____| |_____| ~ By Celso Jr\n");
-
-
-  printf("--- DEBUG: Antes de entrar no loop while(1) ---\n"); // MARCADOR 1
-  fflush(stdout); // Força a impressão imediata
 	  
   while (1) 
-    {
-	if (trade_status == 1) 
-	  {
-      printf("\n[MONITORANDO] Verificando preço de %s... (Alvo: %.8f)\n", trade_symbol, target_price);
-            
-      // 1. Montar a URL para a API de preço
-      char price_endpoint_url[256];
-      snprintf(price_endpoint_url, sizeof(price_endpoint_url), "https://api.binance.com/api/v3/ticker/price?symbol=%s", trade_symbol);
-
-      // 2. Fazer a requisição com cURL para obter o preço
-      CURL *curl_price;
-      CURLcode res_price;
-      struct Memory price_response;
-      price_response.buffer = malloc(1);
-      price_response.size = 0;
-
-      curl_price = curl_easy_init();
-		  
-      if (curl_price) 
-	    {
-        curl_easy_setopt(curl_price, CURLOPT_URL, price_endpoint_url);
-        curl_easy_setopt(curl_price, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-        curl_easy_setopt(curl_price, CURLOPT_WRITEDATA, (void *)&price_response);
-        res_price = curl_easy_perform(curl_price);
-
-        if (res_price == CURLE_OK) 
-		  {
-          cJSON *json = cJSON_Parse(price_response.buffer);
-          if (json != NULL) 
-		    {
-            cJSON *price_item = cJSON_GetObjectItemCaseSensitive(json, "price");
-            if (cJSON_IsString(price_item) && (price_item->valuestring != NULL)) 
-			  {
-              double current_price = atof(price_item->valuestring);
-              printf("Preço atual de %s: %.8f\n", trade_symbol, current_price);
-
-              // 3. A LÓGICA DE DECISÃO!
-              if (current_price <= target_price) 
-			    {
-                printf("\n!!! ALVO DE COMPRA ATINGIDO !!!\n");
-                                
-                // Chamamos nossa função para enviar a ordem
-                place_limit_buy_order(trade_symbol, target_price, quantity);
-
-                // Resetamos o estado para "ocioso"
-                printf("Ordem de compra enviada! Voltando ao modo ocioso.\n");
-                trade_status = 0; 
-                strcpy(trade_symbol, ""); // Limpa o símbolo
-                }
-              }
-              cJSON_Delete(json);
-            }
-          } else 
-		    {
-            fprintf(stderr, "Erro ao buscar preço: %s\n", curl_easy_strerror(res_price));
-            }
-          curl_easy_cleanup(curl_price);
-        }
-        free(price_response.buffer);
-            
-        // Esperar antes de verificar novamente para não sobrecarregar a API
-        sleep(5); 
-        }
-    
-		
+    {	
     printf("\nPainel de Controle: \n");
     printf("\n1 - Saldo Disponivel\n");
     printf("2 - Trade\n");
@@ -388,33 +320,86 @@ main()
 	
 	else if (opcao == 2)
         {
-            if (trade_status != 0) {
-                // Se uma trade já está ativa, apenas mostra o status
-                printf("\n--- STATUS DA TRADE ATIVA ---\n");
-                printf("Par: %s\n", trade_symbol);
-                printf("Quantidade: %f\n", quantity);
-                if (trade_status == 1) {
-                    printf("Ação: AGUARDANDO PREÇO DE COMPRA ATINGIR %.2f\n", target_price);
-                } else if (trade_status == 2) {
-                    printf("Ação: AGUARDANDO PREÇO DE VENDA ATINGIR %.2f\n", target_price);
-                }
-                printf("---------------------------\n");
-            } else {
-                // Se nenhuma trade está ativa, configura uma nova
-                printf("\n--- CONFIGURAR NOVA ORDEM DE COMPRA ---\n");
+		if (trade_status != 0) 
+		  {
+          // Se uma trade já está ativa, apenas mostra o status
+          printf("\n--- UMA TRADE JÁ ESTÁ SENDO MONITORADA ---\n");
+          printf("O bot já está trabalhando em uma ordem. Cancele ou aguarde a conclusão.\n");
+          } else 
+		      {
+              // Se nenhuma trade está ativa, configura uma nova
+              printf("\n--- CONFIGURAR NOVA ORDEM DE COMPRA ---\n");
+              printf("Digite o par de moedas (ex: BTCUSDT): ");
+              scanf("%s", trade_symbol);
+              printf("Digite o preço de compra desejado (em USDT): ");
+              scanf("%lf", &target_price);
+              printf("Digite a quantidade que deseja comprar: ");
+              scanf("%lf", &quantity);
 
-                printf("Digite o par de moedas (ex: BTCUSDT): ");
-                scanf("%s", trade_symbol);
+              trade_status = 1; // Ativa o status de monitoramento
 
-                printf("Digite o preço de compra desejado (em USDT): ");
-                scanf("%lf", &target_price);
+              printf("\nOrdem configurada! Iniciando monitoramento dedicado...\n");
+                
+              while (trade_status == 1) 
+			    {
+                printf("\n[MONITORANDO] Alvo de compra para %s: %.8f\n", trade_symbol, target_price);
+                    
+                char price_endpoint_url[256];
+                snprintf(price_endpoint_url, sizeof(price_endpoint_url), "https://api.binance.com/api/v3/ticker/price?symbol=%s", trade_symbol);
 
-                printf("Digite a quantidade de %s que deseja comprar: ", trade_symbol);
-                scanf("%lf", &quantity);
+                CURL *curl_price;
+                CURLcode res_price;
+                struct Memory price_response;
+                price_response.buffer = malloc(1);
+                price_response.size = 0;
 
-                trade_status = 1; // Define o estado para "Aguardando Compra"
+                curl_price = curl_easy_init();
+                if (curl_price) 
+				  {
+                  curl_easy_setopt(curl_price, CURLOPT_URL, price_endpoint_url);
+                  curl_easy_setopt(curl_price, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+                  curl_easy_setopt(curl_price, CURLOPT_WRITEDATA, (void *)&price_response);
+                  res_price = curl_easy_perform(curl_price);
 
-                printf("\nOrdem configurada! O bot começará a monitorar o preço para comprar %s a %.2f USDT.\n", trade_symbol, target_price);
+                  if (res_price == CURLE_OK) 
+				    {
+                    cJSON *json = cJSON_Parse(price_response.buffer);
+                    if (json != NULL) 
+					  {
+                      cJSON *price_item = cJSON_GetObjectItemCaseSensitive(json, "price");
+                      if (cJSON_IsString(price_item) && (price_item->valuestring != NULL)) 
+					    {
+                        double current_price = atof(price_item->valuestring);
+                        printf("Preço atual: %.8f USDT\n", current_price);
+
+                        if (current_price <= target_price) 
+						  {
+                          printf("\n!!! ALVO DE COMPRA ATINGIDO !!!\n");
+                          place_limit_buy_order(trade_symbol, target_price, quantity);
+                                        
+                          // Resetamos o estado para sair do loop de monitoramento
+                          trade_status = 0; 
+                          strcpy(trade_symbol, "");
+                          }
+                        }
+                        cJSON_Delete(json);
+                      }
+                    } else 
+				        {
+                        fprintf(stderr, "Erro ao buscar preço: %s\n", curl_easy_strerror(res_price));
+                        }
+                        curl_easy_cleanup(curl_price);
+                    }
+                  free(price_response.buffer);
+                    
+                  // Só espera se a trade ainda estiver ativa
+                  if (trade_status == 1) 
+				    {
+                    sleep(5); 
+                    }
+                } // Fim do loop de monitoramento
+                
+                printf("\nMonitoramento finalizado. Retornando ao menu principal.\n");
             }
         }
 

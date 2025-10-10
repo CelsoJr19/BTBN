@@ -240,9 +240,9 @@ main()
     {
 	if (trade_status == 1) 
 	  {
-      printf("\n[MONITORANDO] Verificando preço de %s... (Alvo: %f)\n", trade_symbol, target_price);
+      printf("\n[MONITORANDO] Verificando preço de %s... (Alvo: %.8f)\n", trade_symbol, target_price);
             
-      // 1. Montar a URL para a API de preço (endpoint público, não precisa de assinatura)
+      // 1. Montar a URL para a API de preço
       char price_endpoint_url[256];
       snprintf(price_endpoint_url, sizeof(price_endpoint_url), "https://api.binance.com/api/v3/ticker/price?symbol=%s", trade_symbol);
 
@@ -254,6 +254,7 @@ main()
       price_response.size = 0;
 
       curl_price = curl_easy_init();
+		  
       if (curl_price) 
 	    {
         curl_easy_setopt(curl_price, CURLOPT_URL, price_endpoint_url);
@@ -270,43 +271,35 @@ main()
             if (cJSON_IsString(price_item) && (price_item->valuestring != NULL)) 
 			  {
               double current_price = atof(price_item->valuestring);
-              printf("Preço atual de %s: %f\n", trade_symbol, current_price);
+              printf("Preço atual de %s: %.8f\n", trade_symbol, current_price);
 
               // 3. A LÓGICA DE DECISÃO!
-              if (current_price <= target_price)
+              if (current_price <= target_price) 
 			    {
-                printf("\n!!! ALVO DE COMPRA ATINGIDO !!! Executando ordem...\n");
-					
-                // 3. A LÓGICA DE DECISÃO!
-                if (current_price <= target_price) 
-				  {
-                  printf("\n!!! ALVO DE COMPRA ATINGIDO !!! Executando ordem...\n");
+                printf("\n!!! ALVO DE COMPRA ATINGIDO !!!\n");
                                 
-                  // AQUI ESTÁ A MUDANÇA: Chamamos nossa nova função
-                  place_limit_buy_order(trade_symbol, target_price, quantity);
+                // Chamamos nossa função para enviar a ordem
+                place_limit_buy_order(trade_symbol, target_price, quantity);
 
-                  // Após executar a ordem, resetamos o estado para "ocioso"
-                  trade_status = 0; 
-                  strcpy(trade_symbol, ""); // Limpa o símbolo da trade ativa
-                  }
-
-                // Após executar a ordem, resetamos o estado para "ocioso"
-                trade_status = 0; 
+                // Resetamos o estado para "ocioso"
                 printf("Ordem de compra enviada! Voltando ao modo ocioso.\n");
+                trade_status = 0; 
+                strcpy(trade_symbol, ""); // Limpa o símbolo
                 }
               }
               cJSON_Delete(json);
             }
           } else 
-		      {
-              fprintf(stderr, "Erro ao buscar preço: %s\n", curl_easy_strerror(res_price));
-              }
-            curl_easy_cleanup(curl_price);
+		    {
+            fprintf(stderr, "Erro ao buscar preço: %s\n", curl_easy_strerror(res_price));
+            }
+          curl_easy_cleanup(curl_price);
         }
         free(price_response.buffer);
             
         // Esperar antes de verificar novamente para não sobrecarregar a API
         sleep(5); 
+        }
       }
 		
     printf("\nPainel de Controle: \n");

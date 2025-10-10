@@ -6,7 +6,7 @@
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
 #include <time.h>
-#include "cJSON.h"  // Bibliotecas cJSON
+#include <cjson/cJSON.h>  // Bibliotecas cJSON
 #include <unistd.h>
 
 // Estrutura para armazenar a resposta da API
@@ -207,7 +207,7 @@ main()
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
         curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&response);
 
-        // Fazer a requisiÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
+        // Fazer a requisão
         res = curl_easy_perform(curl);
 
         if (res != CURLE_OK) {

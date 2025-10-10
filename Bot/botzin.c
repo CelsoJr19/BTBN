@@ -158,7 +158,7 @@ main()
         // AQUI VAI ENTRAR O CÓDIGO QUE BUSCA O PREÇO E COMPARA COM O ALVO
         // Por enquanto, vamos apenas imprimir uma mensagem para ver que funciona
         // ===================================================================
-      printf("\n[MONITORANDO] Verificando preço de %s... (Alvo: %.2f)\n", trade_symbol, target_price);
+      printf("\n[MONITORANDO] Verificando preço de %s... (Alvo: %f)\n", trade_symbol, target_price);
       }
 		
     printf("\nPainel de Controle: \n");

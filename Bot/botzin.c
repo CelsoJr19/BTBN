@@ -231,7 +231,11 @@ main()
   printf("  | |   | |_) |   / _ \\   | | | | |  _|     |  _ \\  | | | |   | |     |  _ \\   | |  |  \\| |   / _ \\   |  \\| | | |     |  _|  \n");
   printf("  | |   |  _ <   / ___ \\  | |_| | | |___    | |_) | | |_| |   | |     | |_) |  | |  | |\\  |  / ___ \\  | |\\  | | |___  | |___ \n");
   printf("  |_|   |_|  _\\ /_/    _\\ |____/  |_____|   |____/   \\___/    |_|     |____/  |___| |_| \\_| /_/   \\_\\ |_| \\_|  \\____| |_____| ~ By Celso Jr\n");
- 
+
+
+  printf("--- DEBUG: Antes de entrar no loop while(1) ---\n"); // MARCADOR 1
+  fflush(stdout); // Força a impressão imediata
+	  
   while (1) 
     {
 	if (trade_status == 1) 

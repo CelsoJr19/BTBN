@@ -219,6 +219,7 @@ place_limit_buy_order(const char *symbol, double price, double quantity)
 int
 main() 
   {
+  curl_global_init(CURL_GLOBAL_DEFAULT);
   int opcao;
   char trade_symbol[20] = ""; // Ex: "BTCUSDT"
   double target_price = 0.0;
@@ -261,8 +262,7 @@ main()
     struct Memory response;
     response.buffer = malloc(1); // Inicializa o buffer
     response.size = 0;
-
-    curl_global_init(CURL_GLOBAL_DEFAULT);
+		  
     curl = curl_easy_init();
 
     if (curl) 
@@ -314,8 +314,6 @@ main()
       }
 
     free(response.buffer);
-    curl_global_cleanup();
-    
     } 
 	
 	else if (opcao == 2)
@@ -381,7 +379,11 @@ main()
                           trade_status = 0; 
                           strcpy(trade_symbol, "");
                           }
-                        }
+                        }else
+					       {
+						   printf("ERRO: Não foi possível ler a chave 'price' na resposta da API.\n");
+                           printf("Verifique se o par de moedas ('%s') está correto e ativo na Binance.\n", trade_symbol);
+					       }
                         cJSON_Delete(json);
                       }
                     } else 
@@ -413,5 +415,6 @@ main()
           }
     	
     }
+  curl_global_cleanup();
   return 0;
   }

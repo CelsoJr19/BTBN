@@ -423,10 +423,10 @@ main()
           	return 0;
           	}   
 		else 
-	  	{
-          	printf("\nOpcao invalida. Tente novamente.\n");
-          	}
-    	}
+	  	  {
+          printf("\nOpcao invalida. Tente novamente.\n");
+          }
+    	
 
   	return 0;
   	}

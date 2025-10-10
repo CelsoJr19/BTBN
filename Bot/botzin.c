@@ -308,7 +308,6 @@ main()
         // Esperar antes de verificar novamente para não sobrecarregar a API
         sleep(5); 
       }
-    }
 		
     printf("\nPainel de Controle: \n");
     printf("\n1 - Saldo Disponivel\n");
@@ -321,18 +320,19 @@ main()
     if (opcao == 1) 
       {
       printf("\nConectando ao servidor da Binance...\n");
-        // Carrega as variaveis de ambiente
-    char *api_key = getenv("BINANCE_API_KEY");
-    char *secret_key = getenv("BINANCE_SECRET_KEY");
-
-    if (api_key == NULL || secret_key == NULL) {
+      // Carrega as variaveis de ambiente
+      char *api_key = getenv("BINANCE_API_KEY");
+      char *secret_key = getenv("BINANCE_SECRET_KEY");
+     
+      if (api_key == NULL || secret_key == NULL) 
+	    {
         printf("Erro: API Key ou Secret Key nÃƒÆ’Ã‚Â£o encontradas. Verifique o arquivo config.env.\n");
         return 1;
-    }
-
+        }
+     
     CURL *curl;
     CURLcode res;
-
+     
     struct Memory response;
     response.buffer = malloc(1); // Inicializa o buffer
     response.size = 0;
@@ -340,55 +340,58 @@ main()
     curl_global_init(CURL_GLOBAL_DEFAULT);
     curl = curl_easy_init();
 
-    if (curl) {
-        char endpoint[] = "https://api.binance.com/api/v3/account";
-        long recvWindow = 60000;
+    if (curl) 
+	  {
+      char endpoint[] = "https://api.binance.com/api/v3/account";
+      long recvWindow = 60000;
 
-        // Obter o tempo do servidor da Binance
-        long long timestamp = get_server_time(); // Usando o tempo do servidor
+      // Obter o tempo do servidor da Binance
+      long long timestamp = get_server_time(); // Usando o tempo do servidor
 
-        // Criar a string de consulta
-        char query[256];
-        snprintf(query, sizeof(query), "timestamp=%lld&recvWindow=%ld", timestamp, recvWindow);
+      // Criar a string de consulta
+      char query[256];
+      snprintf(query, sizeof(query), "timestamp=%lld&recvWindow=%ld", timestamp, recvWindow);
 
-        // Gerar a assinatura
-        char signature[65];
-        hmac_sha256(secret_key, query, signature);
+      // Gerar a assinatura
+      char signature[65];
+      hmac_sha256(secret_key, query, signature);
 
-        // Construir a URL final com assinatura
-        char url[512];
-        snprintf(url, sizeof(url), "%s?%s&signature=%s", endpoint, query, signature);
+      // Construir a URL final com assinatura
+      char url[512];
+      snprintf(url, sizeof(url), "%s?%s&signature=%s", endpoint, query, signature);
 
-        // Configurar os cabeÃƒÆ’Ã‚Â§alhos
-        struct curl_slist *headers = NULL;
-        char api_key_header[128];
-        snprintf(api_key_header, sizeof(api_key_header), "X-MBX-APIKEY: %s", api_key);
-        headers = curl_slist_append(headers, api_key_header);
+      // Configurar os cabeÃƒÆ’Ã‚Â§alhos
+      struct curl_slist *headers = NULL;
+      char api_key_header[128];
+      snprintf(api_key_header, sizeof(api_key_header), "X-MBX-APIKEY: %s", api_key);
+      headers = curl_slist_append(headers, api_key_header);
 
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&response);
+      curl_easy_setopt(curl, CURLOPT_URL, url);
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&response);
 
-        // Fazer a requisão
-        res = curl_easy_perform(curl);
+      // Fazer a requisão
+      res = curl_easy_perform(curl);
 
-        if (res != CURLE_OK) {
-            fprintf(stderr, "Erro ao acessar a API Binance: %s\n", curl_easy_strerror(res));
-        } else {
+      if (res != CURLE_OK) 
+	    {
+        fprintf(stderr, "Erro ao acessar a API Binance: %s\n", curl_easy_strerror(res));
+        } else 
+	        {
             // Chamar a funÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o para imprimir o saldo de BTC e o ID da conta
             print_balances_and_account_id(response.buffer);
-        }
+            }
 
-        // Liberar recursos
-        curl_slist_free_all(headers);
-        curl_easy_cleanup(curl);
-    }
+      // Liberar recursos
+      curl_slist_free_all(headers);
+      curl_easy_cleanup(curl);
+      }
 
     free(response.buffer);
     curl_global_cleanup();
     
-        } 
+    } 
 	
 	else if (opcao == 2)
         {
@@ -431,6 +434,6 @@ main()
           printf("\nOpcao invalida. Tente novamente.\n");
           }
     	
-
-  	return 0;
-  	}
+    }
+  return 0;
+  }

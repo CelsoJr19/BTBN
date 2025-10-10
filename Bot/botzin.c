@@ -300,7 +300,7 @@ main()
         // Esperar antes de verificar novamente para não sobrecarregar a API
         sleep(5); 
         }
-      }
+    
 		
     printf("\nPainel de Controle: \n");
     printf("\n1 - Saldo Disponivel\n");

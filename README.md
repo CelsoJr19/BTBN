@@ -11,6 +11,9 @@ Recomendações:
 Restrições de API:
 - Habilite a Leitura
 - Habilitae a negociação à vista e de margem
+- Restrinja a IPs confiaveis
+
+Obs: Caso opte por restringir os IPs, é necessario informar o IP a cada mudança de rede Wi-Fi que faça em sua maquina!
 
 Insira sua BINANCE_API_KEY e sua BINANCE_SECRET_KEY no arquivo "config.env"
 

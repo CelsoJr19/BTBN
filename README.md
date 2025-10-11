@@ -14,6 +14,7 @@ Restrições de API:
 - Restrinja a IPs confiaveis
 
 Obs: Caso opte por restringir os IPs, é necessario informar o IP a cada mudança de rede Wi-Fi que faça em sua maquina!
+     Use _curl ifconfig.me_ para descobrir o IP atual.
 
 Insira sua BINANCE_API_KEY e sua BINANCE_SECRET_KEY no arquivo "config.env"
 

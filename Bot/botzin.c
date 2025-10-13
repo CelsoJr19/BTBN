@@ -296,105 +296,38 @@ int
 main() 
   {
   curl_global_init(CURL_GLOBAL_DEFAULT);
-  int opcao;
-  char trade_symbol[20] = ""; // Ex: "BTCUSDT"
-  double target_price = 0.0;
-  double quantity = 0.0;
-  // 0 = Inativo, 1 = Aguardando Compra, 2 = Aguardando Venda
-  int trade_status = 0; 
+    int opcao;
+    char trade_symbol[20] = "";
+    double target_price = 0.0;
+    double quantity = 0.0;
+    int trade_status = 0; // 0=Inativo, 1=Aguardando Compra, 2=Aguardando Venda
 
-  printf(" _____   ____       _      ____    _____     ____     ___    _____     ____    ___   _   _      _      _   _    ____   _____ \n");
-  printf("|_   _| |  _ \\     / \\    |  _ \\  | ____|   | __ )   / _ \\  |_   _|   | __ )  |_ _| | \\ | |    / \\    | \\ | |  / ___| | ____|\n");
-  printf("  | |   | |_) |   / _ \\   | | | | |  _|     |  _ \\  | | | |   | |     |  _ \\   | |  |  \\| |   / _ \\   |  \\| | | |     |  _|  \n");
-  printf("  | |   |  _ <   / ___ \\  | |_| | | |___    | |_) | | |_| |   | |     | |_) |  | |  | |\\  |  / ___ \\  | |\\  | | |___  | |___ \n");
-  printf("  |_|   |_|  _\\ /_/    _\\ |____/  |_____|   |____/   \\___/    |_|     |____/  |___| |_| \\_| /_/   \\_\\ |_| \\_|  \\____| |_____| ~ By Celso Jr\n");
-	  
-  while (1) 
-    {	
-    printf("\nPainel de Controle: \n");
-    printf("\n1 - Saldo Disponivel\n");
-    printf("2 - Trade\n");
-    printf("3 - Sair\n");
-    printf("\nEscolha uma opcao: ");
-    printf("\n");
-    scanf("%d", &opcao);
-        
-    if (opcao == 1) 
-      {
-      printf("\nConectando ao servidor da Binance...\n");
-      // Carrega as variaveis de ambiente
-      char *api_key = getenv("BINANCE_API_KEY");
-      char *secret_key = getenv("BINANCE_SECRET_KEY");
-     
-      if (api_key == NULL || secret_key == NULL) 
-	    {
-        printf("Erro: API Key ou Secret Key não encontradas. Verifique o arquivo config.env.\n");
-        return 1;
-        }
-     
-    CURL *curl;
-    CURLcode res;
-     
-    struct Memory response;
-    response.buffer = malloc(1); // Inicializa o buffer
-    response.size = 0;
-		  
-    curl = curl_easy_init();
+    printf(" _____  ____      _     ____   _____   ____   / _ \\ |_   _|   ____   |_ _| | \\ | |   / \\   | \\ | |  / ___| | ____|\n");
+    printf("|_   _| |  _ \\    / \\   |  _ \\ | ____|  |  _ \\  | | | |  | |    |  _ \\   | |  |  \\| |  / _ \\  |  \\| | | |    |  _|  \n");
+    printf("  | |   | |_) |  / _ \\  | | | | |  _|    | |_) | | |_| |  | |    | |_) |  | |  | |\\  | / ___ \\ | |\\  | | |___ | |___ \n");
+    printf("  |_|   |_| _\\ /_/   _\\ |____/  |_____|  |____/   \\___/   |_|    |____/  |___| |_| \\_|/_/   \\_\\|_| \\_|  \\____| |_____| ~ By Celso Jr\n");
 
-    if (curl) 
-	  {
-      char endpoint[] = "https://api.binance.com/api/v3/account";
-      long recvWindow = 60000;
+    // Loop principal do menu
+    while (1) 
+    {
+        printf("\nPainel de Controle: \n");
+        printf("\n1 - Saldo Disponivel\n");
+        printf("2 - Trade\n");
+        printf("3 - Sair\n");
+        printf("\nEscolha uma opcao: ");
+        scanf(" %d", &opcao); // Espaço antes de %d para limpar buffer
 
-      // Obter o tempo do servidor da Binance
-      long long timestamp = get_server_time(); // Usando o tempo do servidor
-
-      // Criar a string de consulta
-      char query[256];
-      snprintf(query, sizeof(query), "timestamp=%lld&recvWindow=%ld", timestamp, recvWindow);
-
-      // Gerar a assinatura
-      char signature[65];
-      hmac_sha256(secret_key, query, signature);
-
-      // Construir a URL final com assinatura
-      char url[512];
-      snprintf(url, sizeof(url), "%s?%s&signature=%s", endpoint, query, signature);
-
-      // Configurar os cabeçalhos
-      struct curl_slist *headers = NULL;
-      char api_key_header[128];
-      snprintf(api_key_header, sizeof(api_key_header), "X-MBX-APIKEY: %s", api_key);
-      headers = curl_slist_append(headers, api_key_header);
-
-      curl_easy_setopt(curl, CURLOPT_URL, url);
-      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-      curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&response);
-
-      // Fazer a requisão
-      res = curl_easy_perform(curl);
-
-      if (res != CURLE_OK) 
-	    {
-        fprintf(stderr, "Erro ao acessar a API Binance: %s\n", curl_easy_strerror(res));
-        } else 
-	        {
-            // Chamar a função para imprimir o saldo de BTC e o ID da conta
-            print_balances_and_account_id(response.buffer);
-            }
-
-      // Liberar recursos
-      curl_slist_free_all(headers);
-      curl_easy_cleanup(curl);
-      }
-
-    free(response.buffer);
-    } 
-	
-	else if (opcao == 2)
+        // Lógica para a Opção 1: Ver Saldo
+        if (opcao == 1) 
         {
-		 if (trade_status != 0) {
+            printf("\nConectando ao servidor da Binance...\n");
+            // ... (SEU CÓDIGO PARA A OPÇÃO 1 VAI AQUI, SEM MUDANÇAS) ...
+            // Eu o omiti para focar na correção, mas você deve mantê-lo.
+        } 
+        // Lógica para a Opção 2: Trade
+        else if (opcao == 2)
+        {
+            if (trade_status != 0) {
                 printf("\n--- ERRO: UMA TRADE JÁ ESTÁ EM ANDAMENTO ---\n");
             } else {
                 int trade_choice = 0;
@@ -402,7 +335,7 @@ main()
                 printf("1 - Configurar Ordem de Compra\n");
                 printf("2 - Configurar Ordem de Venda\n");
                 printf("Escolha uma opção: ");
-                scanf("%d", &trade_choice);
+                scanf(" %d", &trade_choice);
 
                 // --- LÓGICA DE COMPRA ---
                 if (trade_choice == 1)
@@ -416,12 +349,11 @@ main()
                     scanf("%lf", &quantity);
 
                     trade_status = 1;
-                    printf("\nOrdem de compra configurada! Iniciando monitoramento dedicado...\n");
+                    printf("\nOrdem configurada! Iniciando monitoramento dedicado...\n");
                     
                     // Loop de monitoramento DEDICADO para a compra
                     while (trade_status == 1) {
-                        // ... COLE AQUI o seu código de monitoramento de compra que já funciona ...
-                        // Ele começa com printf("\n[MONITORANDO]...") e termina com sleep(5);
+                        // COLE AQUI o seu código de monitoramento de compra que já funciona
                     }
                     printf("\nMonitoramento finalizado. Retornando ao menu principal.\n");
                 } 
@@ -441,9 +373,7 @@ main()
                     
                     // Loop de monitoramento DEDICADO para a venda
                     while (trade_status == 2) {
-                        // ... COLE AQUI o código de monitoramento de VENDA que te passei antes ...
-                        // Ele é quase idêntico ao da compra, mas a lógica é if (current_price >= target_price)
-                        // e chama place_limit_sell_order()
+                        // COLE AQUI o código de monitoramento de VENDA que te passei antes
                     }
                     printf("\nMonitoramento finalizado. Retornando ao menu principal.\n");
                 }
@@ -453,17 +383,17 @@ main()
                 }
             }
         }
+        // Lógica para a Opção 3: Sair
+        else if (opcao == 3) 
+        {
+            break; // Sai do loop while(1)
+        } 
+        else 
+        {
+            printf("\nOpcao invalida. Tente novamente.\n");
+        }
+    } // Fim do while(1)
 
-		else if (opcao == 3) 
-          	{
-          	return 0;
-          	}   
-		else 
-	  	  {
-          printf("\nOpcao invalida. Tente novamente.\n");
-          }
-    	
-    }
-  curl_global_cleanup();
-  return 0;
+    curl_global_cleanup();
+    return 0;
   }

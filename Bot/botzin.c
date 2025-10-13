@@ -394,19 +394,9 @@ main()
 	
 	else if (opcao == 2)
         {
-		if (trade_status != 0) {
-                // Se uma trade já está ativa, apenas mostra o status
-                printf("\n--- STATUS DA TRADE ATIVA ---\n");
-                printf("Par: %s\n", trade_symbol);
-                printf("Quantidade: %f\n", quantity);
-                if (trade_status == 1) {
-                    printf("Ação: AGUARDANDO PREÇO DE COMPRA ATINGIR %.8f\n", target_price);
-                } else if (trade_status == 2) {
-                    printf("Ação: AGUARDANDO PREÇO DE VENDA ATINGIR %.8f\n", target_price);
-                }
-                printf("---------------------------\n");
+		 if (trade_status != 0) {
+                printf("\n--- ERRO: UMA TRADE JÁ ESTÁ EM ANDAMENTO ---\n");
             } else {
-                // Se nenhuma trade está ativa, perguntamos qual ação fazer
                 int trade_choice = 0;
                 printf("\n--- CONFIGURAR NOVA ORDEM ---\n");
                 printf("1 - Configurar Ordem de Compra\n");
@@ -414,7 +404,8 @@ main()
                 printf("Escolha uma opção: ");
                 scanf("%d", &trade_choice);
 
-                if (trade_choice == 1) // Configurar COMPRA
+                // --- LÓGICA DE COMPRA ---
+                if (trade_choice == 1)
                 {
                     printf("\n--- NOVA ORDEM DE COMPRA ---\n");
                     printf("Digite o par de moedas (ex: BTCUSDT): ");
@@ -424,10 +415,18 @@ main()
                     printf("Digite a quantidade que deseja comprar: ");
                     scanf("%lf", &quantity);
 
-                    trade_status = 1; // Define o estado para "Aguardando Compra"
-                    printf("\nOrdem de compra configurada! Iniciando monitoramento...\n");
+                    trade_status = 1;
+                    printf("\nOrdem de compra configurada! Iniciando monitoramento dedicado...\n");
+                    
+                    // Loop de monitoramento DEDICADO para a compra
+                    while (trade_status == 1) {
+                        // ... COLE AQUI o seu código de monitoramento de compra que já funciona ...
+                        // Ele começa com printf("\n[MONITORANDO]...") e termina com sleep(5);
+                    }
+                    printf("\nMonitoramento finalizado. Retornando ao menu principal.\n");
                 } 
-                else if (trade_choice == 2) // Configurar VENDA
+                // --- LÓGICA DE VENDA ---
+                else if (trade_choice == 2)
                 {
                     printf("\n--- NOVA ORDEM DE VENDA ---\n");
                     printf("Digite o par de moedas (ex: BTCUSDT): ");
@@ -437,8 +436,16 @@ main()
                     printf("Digite a quantidade que deseja vender: ");
                     scanf("%lf", &quantity);
 
-                    trade_status = 2; // Define o estado para "Aguardando Venda"
-                    printf("\nOrdem de venda configurada! Iniciando monitoramento...\n");
+                    trade_status = 2;
+                    printf("\nOrdem de venda configurada! Iniciando monitoramento dedicado...\n");
+                    
+                    // Loop de monitoramento DEDICADO para a venda
+                    while (trade_status == 2) {
+                        // ... COLE AQUI o código de monitoramento de VENDA que te passei antes ...
+                        // Ele é quase idêntico ao da compra, mas a lógica é if (current_price >= target_price)
+                        // e chama place_limit_sell_order()
+                    }
+                    printf("\nMonitoramento finalizado. Retornando ao menu principal.\n");
                 }
                 else 
                 {

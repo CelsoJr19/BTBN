@@ -320,9 +320,75 @@ main()
         // Lógica para a Opção 1: Ver Saldo
         if (opcao == 1) 
         {
-            printf("\nConectando ao servidor da Binance...\n");
-            // ... (SEU CÓDIGO PARA A OPÇÃO 1 VAI AQUI, SEM MUDANÇAS) ...
-            // Eu o omiti para focar na correção, mas você deve mantê-lo.
+         printf("\nConectando ao servidor da Binance...\n");
+      // Carrega as variaveis de ambiente
+      char *api_key = getenv("BINANCE_API_KEY");
+      char *secret_key = getenv("BINANCE_SECRET_KEY");
+     
+      if (api_key == NULL || secret_key == NULL) 
+	    {
+        printf("Erro: API Key ou Secret Key não encontradas. Verifique o arquivo config.env.\n");
+        return 1;
+        }
+     
+    CURL *curl;
+    CURLcode res;
+     
+    struct Memory response;
+    response.buffer = malloc(1); // Inicializa o buffer
+    response.size = 0;
+		  
+    curl = curl_easy_init();
+
+    if (curl) 
+	  {
+      char endpoint[] = "https://api.binance.com/api/v3/account";
+      long recvWindow = 60000;
+
+      // Obter o tempo do servidor da Binance
+      long long timestamp = get_server_time(); // Usando o tempo do servidor
+
+      // Criar a string de consulta
+      char query[256];
+      snprintf(query, sizeof(query), "timestamp=%lld&recvWindow=%ld", timestamp, recvWindow);
+
+      // Gerar a assinatura
+      char signature[65];
+      hmac_sha256(secret_key, query, signature);
+
+      // Construir a URL final com assinatura
+      char url[512];
+      snprintf(url, sizeof(url), "%s?%s&signature=%s", endpoint, query, signature);
+
+      // Configurar os cabeçalhos
+      struct curl_slist *headers = NULL;
+      char api_key_header[128];
+      snprintf(api_key_header, sizeof(api_key_header), "X-MBX-APIKEY: %s", api_key);
+      headers = curl_slist_append(headers, api_key_header);
+
+      curl_easy_setopt(curl, CURLOPT_URL, url);
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+      curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+      curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&response);
+
+      // Fazer a requisão
+      res = curl_easy_perform(curl);
+
+      if (res != CURLE_OK) 
+	    {
+        fprintf(stderr, "Erro ao acessar a API Binance: %s\n", curl_easy_strerror(res));
+        } else 
+	        {
+            // Chamar a função para imprimir o saldo de BTC e o ID da conta
+            print_balances_and_account_id(response.buffer);
+            }
+
+      // Liberar recursos
+      curl_slist_free_all(headers);
+      curl_easy_cleanup(curl);
+      }
+
+    free(response.buffer);
         } 
         // Lógica para a Opção 2: Trade
         else if (opcao == 2)

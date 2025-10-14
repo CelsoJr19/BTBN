@@ -5,8 +5,8 @@
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
 #include <time.h>
-#include <cjson/cJSON.h>
-#include <unistd.h>
+#include <cJSON.h>
+#include <windows.h>
 
 // Estrutura para armazenar a resposta da API
 struct Memory 
@@ -490,7 +490,7 @@ main()
             // Só espera 5 segundos se a trade ainda estiver ativa
     		if (trade_status == 1) 
 			  { 
-          	  sleep(5); 
+          	  Sleep(5000);
     		  }
             }
 		  printf("\nMonitoramento finalizado. Retornando ao menu principal.\n");
@@ -571,7 +571,7 @@ main()
     	  // Só espera 5 segundos se a trade ainda estiver ativa
     	  if (trade_status == 2) 
 		    { 
-            sleep(5); 
+            Sleep(5000);
             }  
           }
 		printf("\nMonitoramento finalizado. Retornando ao menu principal.\n");

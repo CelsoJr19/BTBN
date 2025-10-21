@@ -17,6 +17,7 @@ Obs: Caso opte por restringir os IPs, é necessario informar o IP a cada mudanç
      Use _curl ifconfig.me_ para descobrir o IP atual.
 
 Insira sua BINANCE_API_KEY e sua BINANCE_SECRET_KEY no arquivo "config.env"
+Obs: O arquivo _"config.env"_ deve estar na mesma pasta que o _"botzin.exe"_ 
 
 Obs: Talves seja necessario digitar _source config.env_ no terminal para carregar as informações 
 

@@ -18,8 +18,8 @@ Obs: Caso opte por restringir os IPs, é necessario informar o IP a cada mudanç
 
 Insira sua BINANCE_API_KEY e sua BINANCE_SECRET_KEY no arquivo "config.env"
 Obs: O arquivo _"config.env"_ deve estar na mesma pasta que o _"botzin.exe"_ 
+Obs WINDOWS: Aos usuarios de windows, o arquivo a ser alterado é o config.bat
 
 Obs: Talves seja necessario digitar _source config.env_ no terminal para carregar as informações 
 
 compile o código usando _gcc botzin.c -o botzin -lcurl -lcrypto -lcJSON_
-Deu bom einnn

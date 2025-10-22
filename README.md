@@ -1,3 +1,5 @@
+OBS: Usuarios de Windows que não conseguirem baixar o arquivo zip, favor usar o FIREFOX, pois o CHROME marca como virus!
+
 Para usar o BotTrade com sua conta Binance va até:
 https://www.binance.com/en/my/settings/api-management
 e crie uma chave de API HMAC.

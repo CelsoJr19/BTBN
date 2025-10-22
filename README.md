@@ -1,4 +1,6 @@
 OBS: Usuarios de Windows que não conseguirem baixar o arquivo zip, favor usar o FIREFOX, pois o CHROME marca como virus!
+Se ainda assim não permitir a extração, clique com o botão direito no arquivo zip e selecione o campo desbloquear na parte inferior de "Geral"
+SE AINDA ASSIM não permitir, vá em "segurança do windows" - "Proteção contra virus e ameaças" - "Histórico de proteção" - "Ações" e selecione "Restaurar".
 
 Para usar o BotTrade com sua conta Binance va até:
 https://www.binance.com/en/my/settings/api-management

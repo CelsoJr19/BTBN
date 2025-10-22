@@ -22,4 +22,4 @@ Obs: O arquivo _"config.env"_ deve estar na mesma pasta que o _"botzin.exe"_
 Obs: Talves seja necessario digitar _source config.env_ no terminal para carregar as informações 
 
 compile o código usando _gcc botzin.c -o botzin -lcurl -lcrypto -lcJSON_
-Deu bom celsin
+Deu bom einnn

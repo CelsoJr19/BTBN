@@ -340,7 +340,6 @@ main()
 
             curl_price = curl_easy_init();
             if (curl_price) {
-                curl_easy_setopt(curl_price, CURLOPT_CAINFO, "cacert.pem"); // Certificado SSL
                 curl_easy_setopt(curl_price, CURLOPT_URL, price_endpoint_url);
                 curl_easy_setopt(curl_price, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
                 curl_easy_setopt(curl_price, CURLOPT_WRITEDATA, (void *)&price_response);
@@ -393,7 +392,6 @@ main()
 
             curl_price = curl_easy_init();
             if (curl_price) {
-                curl_easy_setopt(curl_price, CURLOPT_CAINFO, "cacert.pem"); // Certificado SSL
                 curl_easy_setopt(curl_price, CURLOPT_URL, price_endpoint_url);
                 curl_easy_setopt(curl_price, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
                 curl_easy_setopt(curl_price, CURLOPT_WRITEDATA, (void *)&price_response);
@@ -445,7 +443,6 @@ main()
 
             curl_price = curl_easy_init();
              if (curl_price) {
-                curl_easy_setopt(curl_price, CURLOPT_CAINFO, "cacert.pem"); // Certificado SSL
                 curl_easy_setopt(curl_price, CURLOPT_URL, price_endpoint_url);
                 curl_easy_setopt(curl_price, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
                 curl_easy_setopt(curl_price, CURLOPT_WRITEDATA, (void *)&price_response);
@@ -497,7 +494,6 @@ main()
 
             curl_price = curl_easy_init();
             if (curl_price) {
-                curl_easy_setopt(curl_price, CURLOPT_CAINFO, "cacert.pem"); // Certificado SSL
                 curl_easy_setopt(curl_price, CURLOPT_URL, price_endpoint_url);
                 curl_easy_setopt(curl_price, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
                 curl_easy_setopt(curl_price, CURLOPT_WRITEDATA, (void *)&price_response);

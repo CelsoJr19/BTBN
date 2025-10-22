@@ -5,7 +5,7 @@
 #include <openssl/hmac.h>
 #include <openssl/evp.h>
 #include <time.h>
-#include <cJSON.h>
+#include <cjson/cJSON.h>
 #include <windows.h>
 
 // Estrutura para armazenar a resposta da API
@@ -75,13 +75,14 @@ long long get_server_time()
 
   if (curl) 
     {
+    curl_easy_setopt(curl, CURLOPT_CAINFO, "cacert.pem");
     curl_easy_setopt(curl, CURLOPT_URL, "https://api.binance.com/api/v3/time");
 
-    // Configurar a funÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o de callback para escrever a resposta
+    // Configurar a função de callback para escrever a resposta
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteTimeCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &server_time);
 
-    // Fazer a requisiÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o
+    // Fazer a requisição
     res = curl_easy_perform(curl);
     if (res != CURLE_OK) 
 	  {
@@ -149,7 +150,7 @@ print_balances_and_account_id(const char *json_str)
 void 
 place_limit_buy_order(const char *symbol, double price, double quantity) 
   {
-  printf("Enviando ordem de compra para %f %s ao preço de %.8f USDT...\n", quantity, symbol, price);
+  printf("Enviando ordem de compra para %f %s ao preco de %.8f USDT...\n", quantity, symbol, price);
   fflush(stdout); // Garante que a mensagem acima apareça imediatamente
 
   // --- DEBUG: Início ---
@@ -174,6 +175,7 @@ place_limit_buy_order(const char *symbol, double price, double quantity)
   curl = curl_easy_init();
   if (curl) 
     {
+    curl_easy_setopt(curl, CURLOPT_CAINFO, "cacert.pem");
     char endpoint[] = "https://api.binance.com/api/v3/order";
         
     // --- DEBUG: Buscando timestamp ---
@@ -205,7 +207,7 @@ place_limit_buy_order(const char *symbol, double price, double quantity)
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
     curl_easy_setopt(curl, CURLOPT_POST, 1L);
-	curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, 0L); //Tamanho do corpo do POST = zero
+	  curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, 0L); //Tamanho do corpo do POST = zero
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&response);
 	
@@ -238,7 +240,7 @@ place_limit_buy_order(const char *symbol, double price, double quantity)
 void 
 place_limit_sell_order(const char *symbol, double price, double quantity) 
   {
-  printf("Enviando ordem de venda para %f %s ao preço de %.8f...\n", quantity, symbol, price);
+  printf("Enviando ordem de venda para %f %s ao preco de %.8f...\n", quantity, symbol, price);
 
   char *api_key = getenv("BINANCE_API_KEY");
   char *secret_key = getenv("BINANCE_SECRET_KEY");
@@ -258,6 +260,7 @@ place_limit_sell_order(const char *symbol, double price, double quantity)
   curl = curl_easy_init();
   if (curl) 
     {
+    curl_easy_setopt(curl, CURLOPT_CAINFO, "cacert.pem");
     char endpoint[] = "https://api.binance.com/api/v3/order";
     long long timestamp = get_server_time();
 
@@ -307,7 +310,14 @@ main()
   char trade_symbol[20] = "";
   double target_price = 0.0;
   double quantity = 0.0;
-  int trade_status = 0; // 0=Inativo, 1=Aguardando Compra, 2=Aguardando Venda
+  double buy_target_price = 0.0;  // Preço alvo para COMPRAR no loop
+  double sell_target_price = 0.0; // Preço alvo para VENDER no loop
+  int trade_status = 0;
+    // 0 = Inativo
+    // 1 = Monitorando COMPRA ÚNICA
+    // 2 = Monitorando VENDA ÚNICA
+    // 3 = Loop: AGUARDANDO COMPRA
+    // 4 = Loop: AGUARDANDO VENDA
 
   printf(" _____   ____       _      ____    _____     ____     ___    _____     ____    ___   _   _      _      _   _    ____   _____ \n");
   printf("|_   _| |  _ \\     / \\    |  _ \\  | ____|   | __ )   / _ \\  |_   _|   | __ )  |_ _| | \\ | |    / \\    | \\ | |  / ___| | ____|\n");
@@ -318,6 +328,215 @@ main()
   // Loop principal do menu
   while (1) 
     {
+    if (trade_status == 1) 
+        {
+            printf("\n[MONITORANDO COMPRA UNICA] Alvo para %s: %.8f\n", trade_symbol, buy_target_price);
+            
+            char price_endpoint_url[256];
+            snprintf(price_endpoint_url, sizeof(price_endpoint_url), "https://api.binance.com/api/v3/ticker/price?symbol=%s", trade_symbol);
+
+            CURL *curl_price;
+            CURLcode res_price;
+            struct Memory price_response;
+            price_response.buffer = malloc(1);
+            price_response.size = 0;
+
+            curl_price = curl_easy_init();
+            if (curl_price) {
+                curl_easy_setopt(curl_price, CURLOPT_CAINFO, "cacert.pem"); // Certificado SSL
+                curl_easy_setopt(curl_price, CURLOPT_URL, price_endpoint_url);
+                curl_easy_setopt(curl_price, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+                curl_easy_setopt(curl_price, CURLOPT_WRITEDATA, (void *)&price_response);
+                res_price = curl_easy_perform(curl_price);
+
+                if (res_price == CURLE_OK) {
+                    cJSON *json = cJSON_Parse(price_response.buffer);
+                    if (json != NULL) {
+                        cJSON *price_item = cJSON_GetObjectItemCaseSensitive(json, "price");
+                        if (cJSON_IsString(price_item) && (price_item->valuestring != NULL)) {
+                            double current_price = atof(price_item->valuestring);
+                            printf("Preco atual: %.8f\n", current_price);
+
+                            if (current_price <= buy_target_price) {
+                                printf("\n!!! ALVO DE COMPRA UNICA ATINGIDO !!!\n");
+                                place_limit_buy_order(trade_symbol, buy_target_price, quantity);
+                                trade_status = 0; 
+                                strcpy(trade_symbol, "");
+                            }
+                        } else {
+                             printf("ERRO: Não foi possível ler a chave 'price'. Verifique o par de moedas.\n");
+                        }
+                        cJSON_Delete(json);
+                    }
+                } else {
+                    fprintf(stderr, "Erro ao buscar preco: %s\n", curl_easy_strerror(res_price));
+                }
+                curl_easy_cleanup(curl_price);
+            }
+            free(price_response.buffer);
+            
+            if (trade_status == 1) { 
+                Sleep(5000); 
+            }
+            continue; // PULA O MENU E VOLTA PARA O TOPO PARA MONITORAR DE NOVO
+        } 
+        // Bloco de monitoramento de VENDA ÚNICA (status 2)
+        else if (trade_status == 2) 
+        { 
+            printf("\n[MONITORANDO VENDA UNICA] Alvo para %s: %.8f\n", trade_symbol, sell_target_price);
+            
+            char price_endpoint_url[256];
+            snprintf(price_endpoint_url, sizeof(price_endpoint_url), "https://api.binance.com/api/v3/ticker/price?symbol=%s", trade_symbol);
+
+            CURL *curl_price;
+            CURLcode res_price;
+            struct Memory price_response;
+            price_response.buffer = malloc(1);
+            price_response.size = 0;
+
+            curl_price = curl_easy_init();
+            if (curl_price) {
+                curl_easy_setopt(curl_price, CURLOPT_CAINFO, "cacert.pem"); // Certificado SSL
+                curl_easy_setopt(curl_price, CURLOPT_URL, price_endpoint_url);
+                curl_easy_setopt(curl_price, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+                curl_easy_setopt(curl_price, CURLOPT_WRITEDATA, (void *)&price_response);
+                res_price = curl_easy_perform(curl_price);
+
+                if (res_price == CURLE_OK) {
+                    cJSON *json = cJSON_Parse(price_response.buffer);
+                    if (json != NULL) {
+                        cJSON *price_item = cJSON_GetObjectItemCaseSensitive(json, "price");
+                        if (cJSON_IsString(price_item) && (price_item->valuestring != NULL)) {
+                            double current_price = atof(price_item->valuestring);
+                            printf("Preco atual: %.8f\n", current_price);
+
+                            if (current_price >= sell_target_price) { 
+                                printf("\n!!! ALVO DE VENDA UNICA ATINGIDO !!!\n");
+                                place_limit_sell_order(trade_symbol, sell_target_price, quantity);
+                                trade_status = 0; 
+                                strcpy(trade_symbol, "");
+                            }
+                        } else {
+                             printf("ERRO: Não foi possível ler a chave 'price'. Verifique o par de moedas.\n");
+                        }
+                        cJSON_Delete(json);
+                    }
+                } else {
+                    fprintf(stderr, "Erro ao buscar preco: %s\n", curl_easy_strerror(res_price));
+                }
+                curl_easy_cleanup(curl_price);
+            }
+            free(price_response.buffer);
+            
+            if (trade_status == 2) { 
+                Sleep(5000); 
+            }
+            continue; // PULA O MENU E VOLTA PARA O TOPO PARA MONITORAR DE NOVO
+        }
+        // Bloco de monitoramento do LOOP - AGUARDANDO COMPRA (status 3)
+        else if (trade_status == 3) { 
+            printf("\n[LOOP - AGUARDANDO COMPRA] Alvo: %.8f (Venda em %.8f)\n", buy_target_price, sell_target_price);
+            
+            char price_endpoint_url[256];
+            snprintf(price_endpoint_url, sizeof(price_endpoint_url), "https://api.binance.com/api/v3/ticker/price?symbol=%s", trade_symbol);
+
+            CURL *curl_price;
+            CURLcode res_price;
+            struct Memory price_response;
+            price_response.buffer = malloc(1);
+            price_response.size = 0;
+
+            curl_price = curl_easy_init();
+             if (curl_price) {
+                curl_easy_setopt(curl_price, CURLOPT_CAINFO, "cacert.pem"); // Certificado SSL
+                curl_easy_setopt(curl_price, CURLOPT_URL, price_endpoint_url);
+                curl_easy_setopt(curl_price, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+                curl_easy_setopt(curl_price, CURLOPT_WRITEDATA, (void *)&price_response);
+                res_price = curl_easy_perform(curl_price);
+
+                if (res_price == CURLE_OK) {
+                    cJSON *json = cJSON_Parse(price_response.buffer);
+                    if (json != NULL) {
+                        cJSON *price_item = cJSON_GetObjectItemCaseSensitive(json, "price");
+                        if (cJSON_IsString(price_item) && (price_item->valuestring != NULL)) {
+                            double current_price = atof(price_item->valuestring);
+                            printf("Preco atual: %.8f\n", current_price);
+
+                            if (current_price <= buy_target_price) {
+                                printf("\n!!! LOOP: ALVO DE COMPRA ATINGIDO !!!\n");
+                                place_limit_buy_order(trade_symbol, buy_target_price, quantity);
+                                printf("Compra executada. Agora aguardando preco de venda...\n");
+                                trade_status = 4; // MUDA O ESTADO PARA AGUARDAR VENDA
+                            }
+                        } else {
+                             printf("ERRO: Não foi possível ler a chave 'price'. Verifique o par de moedas.\n");
+                        }
+                        cJSON_Delete(json);
+                    }
+                } else {
+                    fprintf(stderr, "Erro ao buscar preco: %s\n", curl_easy_strerror(res_price));
+                }
+                curl_easy_cleanup(curl_price);
+            }
+            free(price_response.buffer);
+
+            if (trade_status == 3) { // Só espera se ainda estiver aguardando compra
+                Sleep(5000); 
+            }
+            continue; // PULA O MENU E VOLTA PARA O TOPO
+        }
+        // Bloco de monitoramento do LOOP - AGUARDANDO VENDA (status 4)
+         else if (trade_status == 4) { 
+            printf("\n[LOOP - AGUARDANDO VENDA] Alvo: %.8f (Compra em %.8f)\n", sell_target_price, buy_target_price);
+           
+            char price_endpoint_url[256];
+            snprintf(price_endpoint_url, sizeof(price_endpoint_url), "https://api.binance.com/api/v3/ticker/price?symbol=%s", trade_symbol);
+
+            CURL *curl_price;
+            CURLcode res_price;
+            struct Memory price_response;
+            price_response.buffer = malloc(1);
+            price_response.size = 0;
+
+            curl_price = curl_easy_init();
+            if (curl_price) {
+                curl_easy_setopt(curl_price, CURLOPT_CAINFO, "cacert.pem"); // Certificado SSL
+                curl_easy_setopt(curl_price, CURLOPT_URL, price_endpoint_url);
+                curl_easy_setopt(curl_price, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
+                curl_easy_setopt(curl_price, CURLOPT_WRITEDATA, (void *)&price_response);
+                res_price = curl_easy_perform(curl_price);
+
+                if (res_price == CURLE_OK) {
+                    cJSON *json = cJSON_Parse(price_response.buffer);
+                    if (json != NULL) {
+                        cJSON *price_item = cJSON_GetObjectItemCaseSensitive(json, "price");
+                        if (cJSON_IsString(price_item) && (price_item->valuestring != NULL)) {
+                            double current_price = atof(price_item->valuestring);
+                            printf("Preco atual: %.8f\n", current_price);
+
+                            if (current_price >= sell_target_price) {
+                                printf("\n!!! LOOP: ALVO DE VENDA ATINGIDO !!!\n");
+                                place_limit_sell_order(trade_symbol, sell_target_price, quantity);
+                                printf("Venda executada. Agora aguardando preco de compra...\n");
+                                trade_status = 3; // MUDA O ESTADO PARA AGUARDAR COMPRA
+                            }
+                        } else {
+                             printf("ERRO: Não foi possível ler a chave 'price'. Verifique o par de moedas.\n");
+                        }
+                        cJSON_Delete(json);
+                    }
+                } else {
+                    fprintf(stderr, "Erro ao buscar preco: %s\n", curl_easy_strerror(res_price));
+                }
+                curl_easy_cleanup(curl_price);
+            }
+            free(price_response.buffer);
+
+            if (trade_status == 4) { // Só espera se ainda estiver aguardando venda
+                Sleep(5000);
+            }
+            continue; // PULA O MENU E VOLTA PARA O TOPO
+        }
     printf("\nPainel de Controle: \n");
     printf("\n1 - Saldo Disponivel\n");
     printf("2 - Trade\n");
@@ -336,6 +555,7 @@ main()
       if (api_key == NULL || secret_key == NULL) 
 	    {
         printf("Erro: API Key ou Secret Key não encontradas. Verifique o arquivo config.env.\n");
+        system("pause");
         return 1;
         }
      
@@ -350,6 +570,7 @@ main()
 
       if (curl) 
 	    {
+        curl_easy_setopt(curl, CURLOPT_CAINFO, "cacert.pem");
         char endpoint[] = "https://api.binance.com/api/v3/account";
         long recvWindow = 60000;
 
@@ -402,187 +623,90 @@ main()
     // Lógica para a Opção 2: Trade
     else if (opcao == 2)
       {
-      if (trade_status != 0) 
-	    {
-        printf("\n--- ERRO: UMA TRADE JÁ ESTÁ EM ANDAMENTO ---\n");
-        } 
-	  else 
-	    {
-        int trade_choice = 0;
-        printf("\n--- CONFIGURAR NOVA ORDEM ---\n");
-        printf("1 - Configurar Ordem de Compra\n");
-        printf("2 - Configurar Ordem de Venda\n");
-        printf("Escolha uma opção: ");
-        scanf(" %d", &trade_choice);
-
-        // --- LÓGICA DE COMPRA ---
-        if (trade_choice == 1)
-          {
-          printf("\n--- NOVA ORDEM DE COMPRA ---\n");
-          printf("Digite o par de moedas (ex: BTCUSDT): ");
-          scanf("%s", trade_symbol);
-          printf("Digite o preço de compra desejado: ");
-          scanf("%lf", &target_price);
-          printf("Digite a quantidade que deseja comprar: ");
-          scanf("%lf", &quantity);
-
-          trade_status = 1;
-          printf("\nOrdem configurada! Iniciando monitoramento dedicado...\n");
-                    
-          // Loop de monitoramento DEDICADO para a compra
-          while (trade_status == 1) 
-		    {
-            printf("\n[MONITORANDO COMPRA] Alvo para %s: %.8f\n", trade_symbol, target_price);
-    
-            char price_endpoint_url[256];
-    		snprintf(price_endpoint_url, sizeof(price_endpoint_url), "https://api.binance.com/api/v3/ticker/price?symbol=%s", trade_symbol);
-
-    		CURL *curl_price;
-    		CURLcode res_price;
-    		struct Memory price_response;
-    		price_response.buffer = malloc(1);
-    		price_response.size = 0;
-
-    		curl_price = curl_easy_init();
-    		if (curl_price) 
-			  {
-        	  curl_easy_setopt(curl_price, CURLOPT_URL, price_endpoint_url);
-        	  curl_easy_setopt(curl_price, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-        	  curl_easy_setopt(curl_price, CURLOPT_WRITEDATA, (void *)&price_response);
-        	  res_price = curl_easy_perform(curl_price);
-
-       		  if (res_price == CURLE_OK) 
-			    {
-                cJSON *json = cJSON_Parse(price_response.buffer);
-            	if (json != NULL) 
-				  {
-                  cJSON *price_item = cJSON_GetObjectItemCaseSensitive(json, "price");
-                  if (cJSON_IsString(price_item) && (price_item->valuestring != NULL)) 
-				    {
-                    double current_price = atof(price_item->valuestring);
-                    printf("Preço atual: %.8f\n", current_price);
-
-                    if (current_price <= target_price) 
-					  {
-                      printf("\n!!! ALVO DE COMPRA ATINGIDO !!!\n");
-                      place_limit_buy_order(trade_symbol, target_price, quantity);
-                        
-                      // Reseta o estado para sair deste loop de monitoramento
-                      trade_status = 0; 
-                      strcpy(trade_symbol, "");
-                      }
-                    } 
-				  else 
-				    {
-                    printf("ERRO: Não foi possível ler a chave 'price' na resposta da API.\n");
-                    printf("Verifique se o par de moedas ('%s') está correto e ativo na Binance.\n", trade_symbol);
-                    }
-                  cJSON_Delete(json);
-                  }
-                } 
-			  else 
-			    {
-                fprintf(stderr, "Erro ao buscar preço: %s\n", curl_easy_strerror(res_price));
+      if (trade_status != 0) { // Se uma trade (qualquer tipo) está ativa
+                printf("\n--- STATUS DA TRADE ATIVA ---\n");
+                printf("Par: %s\n", trade_symbol);
+                printf("Quantidade: %.8f\n", quantity); 
+                if (trade_status == 1) {
+                    printf("Ação: AGUARDANDO COMPRA UNICA ATINGIR %.8f\n", buy_target_price); // Usar a variável correta
+                } else if (trade_status == 2) {
+                    printf("Ação: AGUARDANDO VENDA UNICA ATINGIR %.8f\n", sell_target_price); // Usar a variável correta
+                } else if (trade_status == 3) {
+                    printf("Ação: LOOP - AGUARDANDO COMPRA ATINGIR %.8f (Venda em %.8f)\n", buy_target_price, sell_target_price);
+                } else if (trade_status == 4) {
+                    printf("Ação: LOOP - AGUARDANDO VENDA ATINGIR %.8f (Compra em %.8f)\n", sell_target_price, buy_target_price);
                 }
-              curl_easy_cleanup(curl_price);
-              }
-            free(price_response.buffer);
-    
-            // Só espera 5 segundos se a trade ainda estiver ativa
-    		if (trade_status == 1) 
-			  { 
-          	  Sleep(5000);
-    		  }
+                printf("---------------------------\n");
+            } else { // Nenhuma trade ativa, configurar uma nova
+                int trade_choice = 0;
+                printf("\n--- CONFIGURAR NOVA ORDEM ---\n");
+                printf("1 - Ordem de Compra\n");
+                printf("2 - Ordem de Venda\n");
+                printf("3 - Loop Automatico Compra/Venda\n"); // Nova opção
+                printf("Escolha uma opcao: ");
+                scanf(" %d", &trade_choice);
+
+                if (trade_choice == 1) // Compra Única
+                {
+                    printf("\n--- NOVA ORDEM DE COMPRA ---\n");
+                    printf("Digite o par de moedas (ex: BTCUSDT): ");
+                    scanf("%s", trade_symbol);
+                    printf("Digite o preco de compra desejado: ");
+                    scanf("%lf", &buy_target_price); // Guardar em buy_target_price
+                    printf("Digite a quantidade que deseja comprar: ");
+                    scanf("%lf", &quantity);
+                    trade_status = 1; 
+                    printf("\nOrdem configurada! Iniciando monitoramento...\n");
+                } 
+                else if (trade_choice == 2) // Venda Única
+                {
+                    printf("\n--- NOVA ORDEM DE VENDA ---\n");
+                    printf("Digite o par de moedas (ex: BTCUSDT): ");
+                    scanf("%s", trade_symbol);
+                    printf("Digite o preco de venda desejado: ");
+                    scanf("%lf", &sell_target_price); // Guardar em sell_target_price
+                    printf("Digite a quantidade que deseja vender: ");
+                    scanf("%lf", &quantity);
+                    trade_status = 2; 
+                    printf("\nOrdem configurada! Iniciando monitoramento...\n");
+                }
+                else if (trade_choice == 3) // Loop Compra/Venda
+                {
+                    printf("\n--- CONFIGURAR LOOP COMPRA/VENDA ---\n");
+                    printf("Digite o par de moedas (ex: BTCUSDT): ");
+                    scanf("%s", trade_symbol);
+                    printf("Digite o PRECO ALVO para COMPRAR (valor baixo): ");
+                    scanf("%lf", &buy_target_price);
+                    printf("Digite o PRECO ALVO para VENDER (valor alto): ");
+                    scanf("%lf", &sell_target_price);
+                    printf("Digite a QUANTIDADE a ser negociada em cada ciclo: ");
+                    scanf("%lf", &quantity);
+
+                    // Validar se o preco de venda é maior que o de compra
+                    if (sell_target_price <= buy_target_price) {
+                        printf("ERRO: O preco de venda deve ser maior que o preco de compra.\n");
+                    } else {
+                        int start_choice = 0;
+                        printf("Deseja comecar tentando COMPRAR (1) ou VENDER (2)? ");
+                        scanf(" %d", &start_choice);
+
+                        if (start_choice == 1) {
+                            trade_status = 3; // Inicia aguardando compra
+                            printf("\nLoop configurado! Iniciando monitoramento para comprar a %.8f...\n", buy_target_price);
+                        } else if (start_choice == 2) {
+                            trade_status = 4; // Inicia aguardando venda
+                            printf("\nLoop configurado! Iniciando monitoramento para vender a %.8f...\n", sell_target_price);
+                        } else {
+                            printf("Opcao de início inválida.\n");
+                        }
+                    }
+                }
+                else 
+                {
+                    printf("Opcao de trade inválida.\n");
+                }
             }
-		  printf("\nMonitoramento finalizado. Retornando ao menu principal.\n");
-          }
-			
-       // --- LÓGICA DE VENDA ---
-       else if (trade_choice == 2)
-         {
-         printf("\n--- NOVA ORDEM DE VENDA ---\n");
-         printf("Digite o par de moedas (ex: BTCUSDT): ");
-         scanf("%s", trade_symbol);
-         printf("Digite o preço de venda desejado: ");
-         scanf("%lf", &target_price);
-         printf("Digite a quantidade que deseja vender: ");
-         scanf("%lf", &quantity);
-
-         trade_status = 2;
-         printf("\nOrdem de venda configurada! Iniciando monitoramento dedicado...\n");
-                    
-         // Loop de monitoramento DEDICADO para a venda
-         while (trade_status == 2) 
-		   {
-           printf("\n[MONITORANDO VENDA] Alvo para %s: %.8f\n", trade_symbol, target_price);
-           char price_endpoint_url[256];
-    	   snprintf(price_endpoint_url, sizeof(price_endpoint_url), "https://api.binance.com/api/v3/ticker/price?symbol=%s", trade_symbol);
-
-    	   CURL *curl_price;
-    	   CURLcode res_price;
-  	  	   struct Memory price_response;
-    	   price_response.buffer = malloc(1);
-    	   price_response.size = 0;
-
-    	   curl_price = curl_easy_init();
-    	   if (curl_price) 
-		     {
-        	 curl_easy_setopt(curl_price, CURLOPT_URL, price_endpoint_url);
-        	 curl_easy_setopt(curl_price, CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
-       		 curl_easy_setopt(curl_price, CURLOPT_WRITEDATA, (void *)&price_response);
-			 res_price = curl_easy_perform(curl_price);
-
-       		 if (res_price == CURLE_OK) 
-			   {
-               cJSON *json = cJSON_Parse(price_response.buffer);
-               if (json != NULL) 
-			     {
-                 cJSON *price_item = cJSON_GetObjectItemCaseSensitive(json, "price");
-                 if (cJSON_IsString(price_item) && (price_item->valuestring != NULL)) 
-				   {
-                   double current_price = atof(price_item->valuestring);
-                   printf("Preço atual: %.8f\n", current_price);
-
-                   // Lógica de VENDA (vender se o preço for MAIOR ou IGUAL ao alvo)
-                   if (current_price >= target_price) 
-				     {
-                     printf("\n!!! ALVO DE VENDA ATINGIDO !!!\n");
-                     place_limit_sell_order(trade_symbol, target_price, quantity);
-                        
-                     // Reseta o estado para sair deste loop de monitoramento
-                     trade_status = 0; 
-                     strcpy(trade_symbol, "");
-			         }
-                   } 
-				 else 
-				   {
-                   printf("ERRO: Não foi possível ler a chave 'price' na resposta da API.\n");
-                   }
-                 cJSON_Delete(json);
-            	 }
-        	 }
-			else 
-			  {
-              fprintf(stderr, "Erro ao buscar preço: %s\n", curl_easy_strerror(res_price));
-        	  }
-        	curl_easy_cleanup(curl_price);
-    		}
-          free(price_response.buffer);
-    
-    	  // Só espera 5 segundos se a trade ainda estiver ativa
-    	  if (trade_status == 2) 
-		    { 
-            Sleep(5000);
-            }  
-          }
-		printf("\nMonitoramento finalizado. Retornando ao menu principal.\n");
-        }
-      else 
-        {
-        printf("Opção de trade inválida.\n");
-        }
       }
-    }
 		
     // Lógica para a Opção 3: Sair
     else if (opcao == 3) 

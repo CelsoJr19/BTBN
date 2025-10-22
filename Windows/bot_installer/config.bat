@@ -1,5 +1,6 @@
 @echo off
-set BINANCE_API_KEY=fyG3V1Fa21qPVTzznaSrjOt7PxsBcB6DuSwx1x9mNixIeKW7NhrEUpfHAueCSSWr
-set BINANCE_SECRET_KEY=DIGCt1QvKsdPKc2pXgR02hYdwqaQU29Ql6tdPV5rTUGTRzfWpHn3YN0hkzzszX55
+set BINANCE_API_KEY=suachaveaqui
+set BINANCE_SECRET_KEY=suachaveaqui
 set CURL_CA_BUNDLE=cacert.pem
+
 echo Chaves de API carregadas para esta sessao do CMD.
